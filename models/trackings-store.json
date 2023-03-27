@@ -1,0 +1,18 @@
+{
+  "trackings": [
+    {
+      "email": "",
+      "products": [
+        {
+          "url": "https://shop.critrole.eu/collections/new-products/products/beauty-of-exandria-creation-calamity-woven-blanket",
+          "notified": true
+        },
+        {
+          "url": "https://shop.critrole.eu/products/witchy-trio-t-shirt?variant=42151142490307",
+          "sizesToTrack": ["M", "L"],
+          "notified": false
+        }
+      ]
+    }
+  ]
+}
