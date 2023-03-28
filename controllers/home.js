@@ -8,7 +8,6 @@ const home = {
   index(request, response) {
     const trackings = trackingStore.getAll();
     const productsToNotify = [];
-    const sizesAvailable = [];
     trackings.map((tracking) => {
       if (tracking.email) {
         // loop through products to be tracked
@@ -19,45 +18,52 @@ const home = {
               .get(productToTrack.url)
               .then((res) => {
                 const $ = cheerio.load(res.data);
-                const productName = $("h1").text();
-
+                const returnedProduct = {...productToTrack}
+                returnedProduct.name = $("h1").text();
+                returnedProduct.sizesAvailable = []
                 // loop through options
                 const options = $("option");
                 options.each((i, el) => {
                   const sku = $(el).attr("data-sku");
                   const quantity = $(el).attr("data-qty");
-                  //check for sizes
+
+                  //check if wanted size(s) available
                   if ("sizesToTrack" in productToTrack) {
-                    const size = $(el).attr("data-sku").split("-").slice(-1)[0];
+                    const size = sku.split("-").slice(-1)[0];
                     if (productToTrack.sizesToTrack.includes(size)) {
-                      console.log(`Size: ${size}, Quantity: ${quantity}`);
-                      if (
-                        quantity &&
-                        !productsToNotify.find(
-                          (p) => p.url === productToTrack.url
-                        )
-                      ) {
-                        sizesAvailable.push(size);
-                        productsToNotify.push(productToTrack);
+                      console.log(`SKU: ${sku}, Size: ${size}, Quantity: ${quantity}`);
+                      if (quantity) {
+                        returnedProduct.sizesAvailable.push(size);
+                        // add product to be notified if not already in list
+                        if (!productsToNotify.find(
+                          (p) => p.url === returnedProduct.url
+                        )) {
+                          productsToNotify.push(returnedProduct);
+                        }
                       }
                     }
                   } else {
+                    // not a clothing item
                     console.log(`SKU: ${sku}, Quantity: ${quantity}`);
                     if (quantity) {
-                      productsToNotify.push(productToTrack);
+                      productsToNotify.push(returnedProduct);
                     }
                   }
                 });
-                // email user
+                // send comms to user
                 if (productsToNotify.length) {
+                  // send comms for each product
+                  let message = "The following products are back in stock:\n"
                   productsToNotify.map((productToNotify) => {
-                    let message = `${productName} is in stock!!\nurl: ${productToNotify.url}`;
-                    if (sizesAvailable.length) {
-                      message += `\nSizes Available: ${sizesAvailable}`;
+                    message += `\n${productToNotify.name}\n${productToNotify.url}\n`;
+                    if (productToNotify.sizesAvailable?.length) {
+                      message += `Size(s) Available: ${productToNotify.sizesAvailable}\n`;
                     }
-                    // send comms
-                    comms.sendComms(tracking.email, message);
-                    // set notified to true
+                  });
+                  // send comms
+                  comms.sendComms(tracking.email, message);
+                  //set notified to true
+                  productsToNotify.map((productToNotify) => {
                     trackingStore.setNotified(tracking.email, productToNotify);
                   });
                 }
